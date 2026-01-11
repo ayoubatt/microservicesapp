@@ -259,5 +259,4 @@ docker-compose down -v
 - Déploiement 100 % Dockerisé
 - Projet fonctionnel et testé
 
-## 🔗 Lien du Projet
-👉 (à compléter avec ton GitHub / GitLab)
+
