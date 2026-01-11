@@ -9,6 +9,6 @@ import com.org.emprunt.DTO.BookDTO;
 @FeignClient(name = "book-service")
 public interface BookClient {
 
-    @GetMapping("/books/{id}")
+    @GetMapping("/api/books/{id}")
     BookDTO getBook(@PathVariable Long id);
 }

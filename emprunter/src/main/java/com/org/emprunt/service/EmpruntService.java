@@ -1,11 +1,14 @@
 package com.org.emprunt.service;
 
 import com.org.emprunt.DTO.EmpruntDetailsDTO;
+import com.org.emprunt.DTO.EmpruntEventDTO;
 import com.org.emprunt.entities.Emprunter;
 import com.org.emprunt.feign.BookClient;
 import com.org.emprunt.feign.UserClient;
+import com.org.emprunt.kafka.EmpruntEventProducer;
 import com.org.emprunt.repositories.EmpruntRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,11 +20,13 @@ public class EmpruntService {
     private final EmpruntRepository repo;
     private final UserClient userClient;
     private final BookClient bookClient;
+    private final EmpruntEventProducer eventProducer;
 
-    public EmpruntService(EmpruntRepository repo, UserClient userClient, BookClient bookClient) {
+    public EmpruntService(EmpruntRepository repo, UserClient userClient, BookClient bookClient, EmpruntEventProducer eventProducer) {
         this.repo = repo;
         this.userClient = userClient;
         this.bookClient = bookClient;
+        this.eventProducer = eventProducer;
     }
 
     public Emprunter createEmprunt(Long userId, Long bookId) {
@@ -32,12 +37,24 @@ public class EmpruntService {
         // 2. Vérifier book existe
         bookClient.getBook(bookId);
 
-        // 3. Créer l’emprunt
+        // 3. Créer l'emprunt
         Emprunter b = new Emprunter();
         b.setUserId(userId);
         b.setBookId(bookId);
 
-        return repo.save(b);
+        Emprunter savedEmprunt = repo.save(b);
+
+        // 4. Publier l'événement Kafka
+        EmpruntEventDTO event = new EmpruntEventDTO(
+            savedEmprunt.getId(),
+            userId,
+            bookId,
+            "EMPRUNT_CREATED",
+            LocalDateTime.now()
+        );
+        eventProducer.sendEmpruntCreatedEvent(event);
+
+        return savedEmprunt;
     }
 
     public List<EmpruntDetailsDTO> getAllEmprunts() {
